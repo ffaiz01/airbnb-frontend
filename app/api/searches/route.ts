@@ -28,36 +28,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse URL to extract checkin date
+    // Parse URL to extract other parameters (but not checkin/checkout)
     const parsedUrl = parseAirbnbUrl(url);
-    const checkinDate = parsedUrl.checkin || null;
     
-    // Generate date ranges if checkin date is available
-    let pricingData = {
-      oneNight: [],
-      twoNights: [],
-      threeNights: [],
-      fourteenNights: { checkin: '', checkout: '', price: 0, date: '' },
-      thirtyNights: { checkin: '', checkout: '', price: 0, date: '' }
+    // Always use today's date as checkin date
+    const today = new Date();
+    const checkinDate = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    // Generate date ranges using today's date
+    const dateRanges = generateDateRanges(checkinDate);
+    const pricingData = {
+      oneNight: dateRanges.oneNight.map(range => ({ ...range, price: 0 })),
+      twoNights: dateRanges.twoNights.map(range => ({ ...range, price: 0 })),
+      threeNights: dateRanges.threeNights.map(range => ({ ...range, price: 0 })),
+      fourteenNights: { ...dateRanges.fourteenNights, price: 0 },
+      thirtyNights: { ...dateRanges.thirtyNights, price: 0 }
     };
-    
-    if (checkinDate) {
-      const dateRanges = generateDateRanges(checkinDate);
-      pricingData = {
-        oneNight: dateRanges.oneNight.map(range => ({ ...range, price: 0 })),
-        twoNights: dateRanges.twoNights.map(range => ({ ...range, price: 0 })),
-        threeNights: dateRanges.threeNights.map(range => ({ ...range, price: 0 })),
-        fourteenNights: { ...dateRanges.fourteenNights, price: 0 },
-        thirtyNights: { ...dateRanges.thirtyNights, price: 0 }
-      };
-    }
 
     const search = new Search({
       name,
       url,
       cleaningFee: cleaningFee || 0,
-      checkinDate: checkinDate,
-      checkoutDate: parsedUrl.checkout || null,
+      checkinDate: checkinDate, // Always today's date
+      checkoutDate: null, // Not needed since we generate dates dynamically
       lastRun: 'Never',
       status: 'idle',
       pricingData: pricingData
